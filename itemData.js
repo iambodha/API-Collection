@@ -16,7 +16,6 @@ app.get('/greet/:name', (req, res) => {
 app.post('/items', (req, res) => {
     const { id, name, description, price } = req.body;
 
-    // Check for existing ID
     if (items.some(item => item.id === id)) {
         return res.status(400).json({ detail: "Item with this ID already exists :(" });
     }
@@ -29,7 +28,6 @@ app.post('/items', (req, res) => {
 app.get('/items', (req, res) => {
     const { search } = req.query;
 
-    // If a search query is provided, filter items by name
     if (search) {
         const filteredItems = items.filter(item => item.name.toLowerCase().includes(search.toLowerCase()));
         return res.json(filteredItems);
@@ -76,7 +74,6 @@ app.delete('/items/:item_id', (req, res) => {
     res.json({ message: "Item deleted successfully :)" });
 });
 
-// New feature: Get items in a price range
 app.get('/items/price-range/:min/:max', (req, res) => {
     const { min, max } = req.params;
     const filteredItems = items.filter(item => item.price >= min && item.price <= max);
