@@ -80,3 +80,57 @@ app.get('/rooms', authenticateToken, async (req, res) => {
     res.json(rooms);
 });
 
+// Create a booking
+app.post('/bookings', authenticateToken, async (req, res) => {
+    const { roomId, user, start_time, end_time } = req.body;
+    const room = await Room.findByPk(roomId);
+
+    if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+    }
+
+    const overlappingBookings = await Booking.findAll({
+        where: {
+            roomId: roomId,
+            start_time: { [Sequelize.Op.lt]: end_time },
+            end_time: { [Sequelize.Op.gt]: start_time }
+        }
+    });
+
+    if (overlappingBookings.length > 0) {
+        return res.status(400).json({ error: "Time slot already booked" });
+    }
+
+    try {
+        const booking = await Booking.create({ roomId, user, start_time, end_time });
+        res.json(booking);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Get all bookings
+app.get('/bookings', authenticateToken, async (req, res) => {
+    const bookings = await Booking.findAll();
+    res.json(bookings);
+});
+
+// User Registration
+app.post('/register', async (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = bcrypt.hashSync(password, 8);
+    const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '24h' });
+    res.json({ auth: true, token });
+});
+
+// User Login
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '24h' });
+    res.json({ auth: true, token });
+});
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
