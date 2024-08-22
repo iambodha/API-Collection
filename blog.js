@@ -96,6 +96,61 @@ app.post('/register', body('username').notEmpty(), body('password').notEmpty(), 
         res.status(400).json({ error: 'Username already taken' });
     }
 });
+
+app.post('/token', body('username').notEmpty(), body('password').notEmpty(), async (req, res) => {
+    const { username, password } = req.body;
+
+    const user = await User.findOne({ where: { username } });
+    if (!user || !(await bcrypt.compare(password, user.hashedPassword))) {
+        return res.status(400).json({ error: 'Incorrect username or password' });
+    }
+
+    const accessToken = generateAccessToken({ username: user.username });
+    res.json({ access_token: accessToken, token_type: 'bearer' });
+});
+
+app.post('/blog', authenticateToken, body('title').notEmpty(), body('content').notEmpty(), async (req, res) => {
+    const { title, content } = req.body;
+    const userId = req.user.id;
+
+    const post = await BlogPost.create({ title, content, userId });
+    res.status(201).json(post);
+});
+
+app.get('/blog', async (req, res) => {
+    const { skip = 0, limit = 10 } = req.query;
+    const posts = await BlogPost.findAll({ offset: parseInt(skip), limit: parseInt(limit) });
+    res.json(posts);
+});
+
+app.put('/blog/:id', authenticateToken, body('title').notEmpty(), body('content').notEmpty(), async (req, res) => {
+    const { id } = req.params;
+    const { title, content } = req.body;
+
+    const post = await BlogPost.findOne({ where: { id, userId: req.user.id } });
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+
+    post.title = title;
+    post.content = content;
+    await post.save();
+
+    res.json(post);
+});
+
+app.delete('/blog/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    const post = await BlogPost.findOne({ where: { id, userId: req.user.id } });
+    if (!post) {
+        return res.status(404).json({ error: 'Post not found' });
+    }
+
+    await post.destroy();
+    res.json({ message: 'Post deleted' });
+});
+
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
