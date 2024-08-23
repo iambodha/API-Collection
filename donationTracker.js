@@ -66,6 +66,55 @@ app.post('/donors', async (req, res) => {
     }
 });
 
+app.get('/donors', async (req, res) => {
+    try {
+        const donors = await Donor.findAll({ include: Donation });
+        res.json(donors);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/donations', async (req, res) => {
+    const { donor_id, amount, date } = req.body;
+    try {
+        const donor = await Donor.findByPk(donor_id);
+        if (!donor) {
+            return res.status(404).json({ error: 'Donor not found' });
+        }
+        const donation = await Donation.create({ donor_id, amount, date });
+        res.json(donation);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/donations', async (req, res) => {
+    try {
+        const donations = await Donation.findAll({ include: Donor });
+        res.json(donations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/donations/report', async (req, res) => {
+    const { start_date, end_date } = req.query;
+    try {
+        const donations = await Donation.findAll({
+            where: {
+                date: {
+                    [Sequelize.Op.between]: [start_date, end_date]
+                }
+            },
+            include: Donor
+        });
+        res.json(donations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
