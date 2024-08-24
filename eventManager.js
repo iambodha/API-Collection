@@ -82,6 +82,63 @@ app.post('/events', (req, res) => {
     res.json(events[event.id]);
 });
 
+app.get('/events/:eventId', (req, res) => {
+    const eventId = parseInt(req.params.eventId);
+    if (events[eventId]) {
+        res.json(events[eventId]);
+    } else {
+        res.status(404).json({ detail: "Event not found" });
+    }
+});
+
+app.get('/events', (req, res) => {
+    res.json(Object.values(events));
+});
+
+app.get('/events/venue/:venueId', (req, res) => {
+    const venueId = parseInt(req.params.venueId);
+    const result = Object.values(events).filter(event => event.venueId === venueId);
+    if (result.length > 0) {
+        res.json(result);
+    } else {
+        res.status(404).json({ detail: "No events found for this venue" });
+    }
+});
+
+app.post('/participants', (req, res) => {
+    const participant = req.body;
+    if (participants[participant.id]) {
+        return res.status(400).json({ detail: "Participant with this ID already exists" });
+    }
+    if (!events[participant.eventId]) {
+        return res.status(404).json({ detail: "Event not found" });
+    }
+    participants[participant.id] = new Participant(participant.id, participant.name, participant.email, participant.eventId);
+    events[participant.eventId].participants.push(participants[participant.id]);
+    res.json(participants[participant.id]);
+});
+
+app.get('/participants/:participantId', (req, res) => {
+    const participantId = parseInt(req.params.participantId);
+    if (participants[participantId]) {
+        res.json(participants[participantId]);
+    } else {
+        res.status(404).json({ detail: "Participant not found" });
+    }
+});
+
+app.get('/participants', (req, res) => {
+    res.json(Object.values(participants));
+});
+
+app.get('/participants/event/:eventId', (req, res) => {
+    const eventId = parseInt(req.params.eventId);
+    if (!events[eventId]) {
+        return res.status(404).json({ detail: "Event not found" });
+    }
+    res.json(events[eventId].participants);
+});
+
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
