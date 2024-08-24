@@ -62,6 +62,68 @@ app.get('/courses', async (req, res) => {
     res.json(courses);
 });
 
+app.post('/students', async (req, res) => {
+    const { name } = req.body;
+    const student = await Student.create({ name });
+    res.json(student);
+});
+
+app.get('/students', async (req, res) => {
+    const students = await Student.findAll({ include: 'enrollments' });
+    res.json(students);
+});
+
+app.post('/enrollments', async (req, res) => {
+    const { courseId, studentId } = req.body;
+    const enrollment = await Enrollment.create({ courseId, studentId });
+    res.json(enrollment);
+});
+
+app.put('/enrollments/:id/progress', async (req, res) => {
+    const { id } = req.params;
+    const { progress } = req.body;
+    const enrollment = await Enrollment.findByPk(id);
+
+    if (!enrollment) {
+        return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    enrollment.progress = progress;
+    enrollment.completed = progress === 100;
+    await enrollment.save();
+
+    res.json(enrollment);
+});
+
+app.delete('/courses/:id', async (req, res) => {
+    const { id } = req.params;
+    await Course.destroy({ where: { id } });
+    res.status(204).send();
+});
+
+app.delete('/students/:id', async (req, res) => {
+    const { id } = req.params;
+    await Student.destroy({ where: { id } });
+    res.status(204).send();
+});
+
+app.delete('/enrollments/:id', async (req, res) => {
+    const { id } = req.params;
+    await Enrollment.destroy({ where: { id } });
+    res.status(204).send();
+});
+
+app.get('/courses/:courseId/students/:studentId', async (req, res) => {
+    const { courseId, studentId } = req.params;
+    const enrollment = await Enrollment.findOne({ where: { courseId, studentId } });
+
+    if (!enrollment) {
+        return res.status(404).json({ error: 'Student is not enrolled in this course' });
+    }
+
+    res.json(enrollment);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
